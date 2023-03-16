@@ -81,6 +81,7 @@ const TokenSelection = ({
   onChangeToken: (token: ?TokenCurrency) => void,
 }) => {
   const tokens = useMemo(() => listTokensForCryptoCurrency(currency), [currency]);
+
   return (
     <>
       <Label mt={30}>
@@ -105,6 +106,12 @@ export default function StepAccount({
   const mainAccount = account ? getMainAccount(account, parentAccount) : null;
   const error = account ? getReceiveFlowError(account, parentAccount) : null;
   const tokenTypes = mainAccount ? listTokenTypesForCryptoCurrency(mainAccount.currency) : [];
+
+  // Nb in the context of LL-6449 (nft integration) simplified the wording for the warning.
+  const tokenType =
+    mainAccount?.currency.name === "Ethereum"
+      ? mainAccount.currency.name
+      : tokenTypes.map(tt => tt.toUpperCase()).join("/");
 
   const url = supportLinkByTokenType[tokenTypes[0]];
 
@@ -136,12 +143,12 @@ export default function StepAccount({
                 account.type === "TokenAccount"
                   ? {
                       token: account.token.name,
-                      tokenType: tokenTypes.map(tt => tt.toUpperCase()).join("/"),
+                      tokenType,
                       currency: mainAccount && mainAccount.currency.name,
                     }
                   : {
                       ticker: account.currency.ticker,
-                      tokenType: tokenTypes.map(tt => tt.toUpperCase()).join("/"),
+                      tokenType,
                       currency: account.currency.name,
                     }
               }
@@ -165,7 +172,7 @@ export function StepAccountFooter({
   const error = account ? getReceiveFlowError(account, parentAccount) : null;
   return (
     <Button
-      id={"receive-account-continue-button"}
+      data-test-id="modal-continue-button"
       disabled={!account || (receiveTokenMode && !token) || !!error}
       primary
       onClick={() => transitionTo("device")}

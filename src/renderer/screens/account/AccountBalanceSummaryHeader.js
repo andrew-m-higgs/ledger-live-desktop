@@ -81,7 +81,6 @@ export default function AccountBalanceSummaryHeader({
                 <FormattedVal
                   key={secondaryKey}
                   animateTicker
-                  disableRounding
                   alwaysShowSign={false}
                   color="warmGrey"
                   unit={data[1].unit}
@@ -90,7 +89,7 @@ export default function AccountBalanceSummaryHeader({
                   val={data[1].balance}
                 />
               ) : (
-                <NoCountervaluePlaceholder style={null} />
+                <NoCountervaluePlaceholder style={{}} />
               )}
             </div>
             <Price

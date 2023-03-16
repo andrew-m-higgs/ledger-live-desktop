@@ -11,6 +11,8 @@ export const supportLinkByTokenType = {
     "https://support.ledger.com/hc/en-us/articles/360013062159?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=receive_account_flow",
   asa:
     "https://support.ledger.com/hc/en-us/articles/360015896040?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=receive_account_flow",
+  nfts:
+    "https://support.ledger.com/hc/en-us/articles/4404389453841-Receive-crypto-assets?utm_medium=self_referral&utm_content=receive_account_flow",
 };
 
 export const urls = {
@@ -39,13 +41,13 @@ export const urls = {
     "https://support.ledger.com/hc/en-us/articles/360012207759?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=error_syncerror",
   terms: {
     en:
-      "https://www.ledger.com/pages/terms-of-use-and-disclaimer?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=terms",
+      "https://shop.ledger.com/pages/ledger-live-terms-of-use?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=terms",
     fr:
-      "https://shop.ledger.com/pages/conditions-generales-dutilisation-du-site-web?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
+      "https://shop.ledger.com/pages/conditions-dutilisation-de-ledger-live?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
     es:
-      "https://shop.ledger.com/pages/condiciones-de-uso-del-sitio-web?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
+      "https://shop.ledger.com/pages/condiciones-de-uso-de-ledger-live?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
     de:
-      "https://shop.ledger.com/pages/nutzungsbedingungen-der-website?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
+      "https://shop.ledger.com/pages/nutzungsbedingungen-von-ledger-live?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
   },
   noDevice: {
     buyNew:
@@ -64,6 +66,7 @@ export const urls = {
     "https://support.ledger.com/hc/en-us/articles/360021039173-Choose-network-fees?docs=true",
   recipientAddressInfo:
     "https://support.ledger.com/hc/en-us/articles/4404389453841-Receive-crypto-assets?docs=true",
+  managerAppLearnMore: "https://support.ledger.com/hc/en-us/categories/4404376139409?docs=true",
   privacyPolicy: {
     en:
       "https://shop.ledger.com/pages/privacy-policy?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
@@ -73,6 +76,8 @@ export const urls = {
       "https://shop.ledger.com/pages/politica-de-privacidad?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
     ru:
       "https://shop.ledger.com/pages/nasha-politika-konfidentsialnosti?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
+    de:
+      "https://shop.ledger.com/pages/unsere-datenschutzrichtlinie?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=privacy",
   },
   troubleshootingUSB:
     "https://support.ledger.com/hc/en-us/articles/115005165269?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=error",
@@ -94,6 +99,8 @@ export const urls = {
   updateDeviceFirmware: {
     nanoS:
       "https://support.ledger.com/hc/en-us/articles/360002731113?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=firmwareupdate",
+    nanoSP:
+      "https://support.ledger.com/hc/en-us/articles/4445777839901?&utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=firmwareupdate",
     nanoX:
       "https://support.ledger.com/hc/en-us/articles/360013349800?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=firmwareupdate",
     blue:
@@ -101,6 +108,8 @@ export const urls = {
   },
   lostPinOrSeed: {
     nanoS:
+      "https://support.ledger.com/hc/en-us/articles/4404382075537-Don-t-have-your-Recovery-phrase-?support=true",
+    nanoSP:
       "https://support.ledger.com/hc/en-us/articles/4404382075537-Don-t-have-your-Recovery-phrase-?support=true",
     nanoX:
       "https://support.ledger.com/hc/en-us/articles/4404382075537-Don-t-have-your-Recovery-phrase-?support=true",
@@ -130,8 +139,8 @@ export const urls = {
   banners: {
     blackfriday:
       "https://shop.ledger.com/pages/black-friday?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=banner_carousel",
-    backupPack:
-      "https://shop.ledger.com/products/ledger-backup-pack?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=banner_carousel",
+    familyPack:
+      "https://shop.ledger.com/products/ledger-nano-s-3pack?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=banner_carousel",
     ledgerAcademy:
       "https://www.ledger.com/academy?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=banner_carousel",
     ongoingScams:
@@ -195,4 +204,15 @@ export const urls = {
     "https://shop.ledger.com/pages/ledger-live-terms-of-use?utm_source=ledger_live_desktop&utm_medium=self_referral&utm_content=compoundTnC",
   approvedOperation:
     "https://support.ledger.com/hc/en-us/articles/360020849134-Track-your-transaction?docs=true",
+  cryptoOrg: {
+    website: "https://crypto.org",
+  },
+  elrond: {
+    website: "https://elrond.com",
+  },
+  solana: {
+    staking: "https://support.ledger.com/hc/en-us/articles/4731749170461?docs=true",
+    recipient_info: "https://support.ledger.com",
+    ledgerByFigmentTC: "https://drive.google.com/file/d/1vlIh2gTwtbMon8_bzFQGjCLhTUqS5uQc",
+  },
 };

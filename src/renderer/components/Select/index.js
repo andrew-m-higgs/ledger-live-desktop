@@ -18,7 +18,7 @@ export type Option = {
   data: any,
 };
 
-type Props = {
+export type Props = {
   // required
   value: ?Option,
   options: Option[],
@@ -44,9 +44,11 @@ type Props = {
   autoFocus: boolean,
   virtual: boolean,
   rowHeight: number,
+  disableOptionPadding?: boolean,
   error: ?Error, // NB at least a different rendering for now
   stylesMap: CreateStylesReturnType => CreateStylesReturnType,
   extraRenderers?: { [string]: (props: *) => React$ElementType }, // Allows overriding react-select components. See: https://react-select.com/components
+  disabledTooltipText?: string,
 };
 
 const Row = styled.div`
@@ -141,7 +143,7 @@ class MenuList extends PureComponent<*, *> {
 }
 class Select extends PureComponent<Props> {
   componentDidMount() {
-    if (this.ref && this.props.autoFocus && !process.env.SPECTRON_RUN) {
+    if (this.ref && this.props.autoFocus && !process.env.PLAYWRIGHT_RUN) {
       // $FlowFixMe
       this.timeout = requestAnimationFrame(() => this.ref.focus());
     }
@@ -199,21 +201,29 @@ class Select extends PureComponent<Props> {
       error,
       stylesMap,
       virtual = true,
-      rowHeight = small ? 34 : 40,
+      rowHeight = small ? 34 : 48,
       autoFocus,
       extraRenderers,
       ...props
     } = this.props;
 
     const Comp = async ? AsyncReactSelect : ReactSelect;
-    let styles = createStyles(theme, { width, minWidth, small, isRight, isLeft, error });
+    let styles = createStyles(theme, {
+      width,
+      minWidth,
+      small,
+      isRight,
+      isLeft,
+      error,
+      rowHeight,
+    });
     styles = stylesMap ? stylesMap(styles) : styles;
 
     return (
       <Comp
         {...props}
         ref={c => (this.ref = c)}
-        autoFocus={autoFocus && !process.env.SPECTRON_RUN}
+        autoFocus={autoFocus && !process.env.PLAYWRIGHT_RUN}
         value={value}
         maxMenuHeight={rowHeight * 4.5}
         classNamePrefix="select"
@@ -222,13 +232,13 @@ class Select extends PureComponent<Props> {
           virtual
             ? {
                 MenuList,
-                ...createRenderers({ renderOption, renderValue }),
+                ...createRenderers({ renderOption, renderValue, selectProps: this.props }),
                 // Flow is unhappy because extraRenderers keys can "theoretically" conflict.
                 // $FlowFixMe
                 ...(extraRenderers || {}),
               }
             : {
-                ...createRenderers({ renderOption, renderValue }),
+                ...createRenderers({ renderOption, renderValue, selectProps: this.props }),
                 // $FlowFixMe
                 ...(extraRenderers || {}),
               }

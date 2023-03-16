@@ -31,6 +31,9 @@ type Props = {
   replaceAccounts: (Account[]) => void,
   blacklistedTokenIds?: string[],
   currency: ?CryptoCurrency | ?TokenCurrency,
+  flow?: string,
+  onClose?: () => void,
+  preventSkippingCurrencySelection: ?Boolean,
 };
 
 type StepId = "chooseCurrency" | "connectDevice" | "import" | "finish";
@@ -56,6 +59,7 @@ export type StepProps = {
   editedNames: { [_: string]: string },
   setScannedAccounts: ({ scannedAccounts?: Account[], checkedAccountsIds?: string[] }) => void,
   blacklistedTokenIds?: string[],
+  flow?: string,
 };
 
 type St = Step<StepId, StepProps>;
@@ -143,7 +147,7 @@ const INITIAL_STATE = {
 
 class AddAccounts extends PureComponent<Props, State> {
   state = INITIAL_STATE;
-  STEPS = createSteps(this.props.currency);
+  STEPS = createSteps(this.props.currency && !this.props.preventSkippingCurrencySelection);
 
   handleClickAdd = async () => {
     const { replaceAccounts, existingAccounts } = this.props;
@@ -158,7 +162,6 @@ class AddAccounts extends PureComponent<Props, State> {
     );
   };
 
-  handleCloseModal = () => this.props.closeModal("MODAL_ADD_ACCOUNTS");
   handleStepChange = (step: St) => this.setState({ stepId: step.id });
 
   handleSetCurrency = (currency: ?CryptoCurrency) => this.setState({ currency });
@@ -215,7 +218,13 @@ class AddAccounts extends PureComponent<Props, State> {
   };
 
   render() {
-    const { device, existingAccounts, blacklistedTokenIds } = this.props;
+    const {
+      device,
+      existingAccounts,
+      blacklistedTokenIds,
+      flow = "add account",
+      preventSkippingCurrencySelection,
+    } = this.props;
     const {
       currency,
       scannedAccounts,
@@ -236,7 +245,6 @@ class AddAccounts extends PureComponent<Props, State> {
       scanStatus,
       err,
       onClickAdd: this.handleClickAdd,
-      onCloseModal: this.handleCloseModal,
       setScanStatus: this.handleSetScanStatus,
       setCurrency: this.handleSetCurrency,
       setScannedAccounts: this.handleSetScannedAccounts,
@@ -244,10 +252,11 @@ class AddAccounts extends PureComponent<Props, State> {
       setAccountName: this.handleSetAccountName,
       onGoStep1: this.onGoStep1,
       editedNames,
+      flow,
     };
     const title = <Trans i18nKey="addAccounts.title" />;
     const errorSteps = err ? [2] : [];
-    if (stepId === "chooseCurrency" && this.props.currency) {
+    if (stepId === "chooseCurrency" && this.props.currency && !preventSkippingCurrencySelection) {
       stepId = "connectDevice";
     }
     stepperProps.currency = stepperProps.currency || this.props.currency;
@@ -259,21 +268,29 @@ class AddAccounts extends PureComponent<Props, State> {
         onHide={() => this.setState({ ...INITIAL_STATE })}
         onBeforeOpen={this.handleBeforeOpen}
         preventBackdropClick={stepId === "import"}
-        render={({ onClose }) => (
-          <Stepper
-            key={reset} // THIS IS A HACK because stepper is not controllable. FIXME
-            title={title}
-            stepId={stepId}
-            onStepChange={this.handleStepChange}
-            onClose={onClose}
-            steps={this.STEPS}
-            errorSteps={errorSteps}
-            {...stepperProps}
-          >
-            <Track onUnmount event="CloseModalAddAccounts" />
-            <SyncSkipUnderPriority priority={100} />
-          </Stepper>
-        )}
+        render={({ onClose }) => {
+          const handleCloseModal = () => {
+            this.props.onClose?.();
+            onClose();
+          };
+
+          return (
+            <Stepper
+              key={reset} // THIS IS A HACK because stepper is not controllable. FIXME
+              title={title}
+              stepId={stepId}
+              onStepChange={this.handleStepChange}
+              onClose={handleCloseModal}
+              onCloseModal={handleCloseModal}
+              steps={this.STEPS}
+              errorSteps={errorSteps}
+              {...stepperProps}
+            >
+              <Track onUnmount event="CloseModalAddAccounts" />
+              <SyncSkipUnderPriority priority={100} />
+            </Stepper>
+          );
+        }}
       />
     );
   }

@@ -19,6 +19,32 @@ const babelConfig = {
   plugins: babelPlugins,
 };
 
+const babelTsConfig = {
+  presets: [
+    "@babel/preset-typescript",
+    [
+      "@babel/preset-env",
+      {
+        targets: {
+          electron: "7.1.9",
+        },
+      },
+    ],
+    "@babel/preset-react",
+    "@babel/preset-flow",
+  ],
+  plugins: [
+    ...babelPlugins,
+    "react-hot-loader/babel",
+    [
+      "babel-plugin-styled-components",
+      {
+        ssr: false,
+      },
+    ],
+  ],
+};
+
 module.exports = {
   target: "electron-main",
   optimization: {
@@ -61,13 +87,6 @@ module.exports = {
   resolve: {
     alias: {
       "~": path.resolve(__dirname, "src"),
-      "@ui": path.resolve(__dirname, "ui-lib", "lib"),
-      "@components": process.env.REBRANDING
-        ? path.resolve(__dirname, "ui-lib", "lib", "components")
-        : path.resolve(__dirname, "src", "renderer", "components"),
-      "@styles": process.env.REBRANDING
-        ? path.resolve(__dirname, "ui-lib", "lib", "styles")
-        : path.resolve(__dirname, "src", "renderer", "styles"),
     },
   },
 };

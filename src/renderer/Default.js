@@ -1,23 +1,27 @@
 // @flow
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef } from "react";
 import styled from "styled-components";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
+import { FeatureToggle } from "@ledgerhq/live-common/lib/featureFlags";
 import TrackAppStart from "~/renderer/components/TrackAppStart";
 import { BridgeSyncProvider } from "~/renderer/bridge/BridgeSyncContext";
 import { SyncNewAccounts } from "~/renderer/bridge/SyncNewAccounts";
 import Dashboard from "~/renderer/screens/dashboard";
 import Settings from "~/renderer/screens/settings";
 import Accounts from "~/renderer/screens/accounts";
+import Card from "~/renderer/screens/card";
 import Manager from "~/renderer/screens/manager";
 import Exchange from "~/renderer/screens/exchange";
-import Swap from "~/renderer/screens/exchange/swap";
 import Swap2 from "~/renderer/screens/exchange/Swap2";
+import USBTroubleshooting from "~/renderer/screens/USBTroubleshooting";
 import Account from "~/renderer/screens/account";
 import WalletConnect from "~/renderer/screens/WalletConnect";
 import Asset from "~/renderer/screens/asset";
 import Lend from "~/renderer/screens/lend";
 import PlatformCatalog from "~/renderer/screens/platform";
 import PlatformApp from "~/renderer/screens/platform/App";
+import NFTGallery from "~/renderer/screens/nft/Gallery";
+import NFTCollection from "~/renderer/screens/nft/Gallery/Collection";
 import Box from "~/renderer/components/Box/Box";
 import ListenDevices from "~/renderer/components/ListenDevices";
 import ExportLogsButton from "~/renderer/components/ExportLogsButton";
@@ -26,7 +30,7 @@ import IsUnlocked from "~/renderer/components/IsUnlocked";
 import OnboardingOrElse from "~/renderer/components/OnboardingOrElse";
 import AppRegionDrag from "~/renderer/components/AppRegionDrag";
 import IsNewVersion from "~/renderer/components/IsNewVersion";
-import LibcoreBusyIndicator from "~/renderer/components/LibcoreBusyIndicator";
+import IsSystemLanguageAvailable from "~/renderer/components/IsSystemLanguageAvailable";
 import DeviceBusyIndicator from "~/renderer/components/DeviceBusyIndicator";
 import KeyboardContent from "~/renderer/components/KeyboardContent";
 import PerfIndicator from "~/renderer/components/PerfIndicator";
@@ -40,14 +44,23 @@ import type { ThemedComponent } from "~/renderer/styles/StyleProvider";
 import Page from "~/renderer/components/Page";
 import AnalyticsConsole from "~/renderer/components/AnalyticsConsole";
 import DebugMock from "~/renderer/components/debug/DebugMock";
+import DebugSkeletons from "~/renderer/components/debug/DebugSkeletons";
 import { DebugWrapper } from "~/renderer/components/debug/shared";
 import useDeeplink from "~/renderer/hooks/useDeeplinking";
+import useUSBTroubleshooting from "~/renderer/hooks/useUSBTroubleshooting";
 import ModalsLayer from "./ModalsLayer";
 import { ToastOverlay } from "~/renderer/components/ToastOverlay";
 import Drawer from "~/renderer/drawers/Drawer";
 import UpdateBanner from "~/renderer/components/Updater/Banner";
 import FirmwareUpdateBanner from "~/renderer/components/FirmwareUpdateBanner";
-import useEnv from "~/renderer/hooks/useEnv";
+// $FlowFixMe
+import Market from "~/renderer/screens/market";
+// $FlowFixMe
+import MarketCoinScreen from "~/renderer/screens/market/MarketCoinScreen";
+// $FlowFixMe
+import Learn from "~/renderer/screens/learn";
+
+import { useProviders } from "~/renderer/screens/exchange/Swap2/Form";
 
 export const TopBannerContainer: ThemedComponent<{}> = styled.div`
   position: sticky;
@@ -105,9 +118,10 @@ const NightlyLayer = React.memo(NightlyLayerR);
 export default function Default() {
   const location = useLocation();
   const ref: React$ElementRef<any> = useRef();
-  const isSwapV2Enabled = useEnv("EXPERIMENTAL_SWAP") && __DEV__;
-  const SwapComponent = useMemo(() => (isSwapV2Enabled ? Swap2 : Swap), [isSwapV2Enabled]);
   useDeeplink();
+  useUSBTroubleshooting();
+
+  useProviders(); // prefetch data from swap providers here
 
   // every time location changes, scroll back up
   useEffect(() => {
@@ -129,23 +143,11 @@ export default function Default() {
         <BridgeSyncProvider>
           <ContextMenuWrapper>
             <ModalsLayer />
-            {process.env.SPECTRON_RUN ? (
-              <div
-                id="unfocus-please"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 500,
-                  width: 10,
-                  height: 10,
-                  zIndex: 999,
-                }}
-              />
-            ) : null}
             <DebugWrapper>
               {process.env.DEBUG_THEME ? <DebugTheme /> : null}
               {process.env.MOCK ? <DebugMock /> : null}
               {process.env.DEBUG_UPDATE ? <DebugUpdater /> : null}
+              {process.env.DEBUG_SKELETONS ? <DebugSkeletons /> : null}
               {process.env.DEBUG_FIRMWARE_UPDATE ? <DebugFirmwareUpdater /> : null}
             </DebugWrapper>
             <OnboardingOrElse>
@@ -155,6 +157,7 @@ export default function Default() {
                 </Route>
                 <Route>
                   <IsNewVersion />
+                  <IsSystemLanguageAvailable />
                   <SyncNewAccounts priority={2} />
 
                   <Box
@@ -174,7 +177,8 @@ export default function Default() {
                         <Route path="/" exact render={props => <Dashboard {...props} />} />
                         <Route path="/settings" render={props => <Settings {...props} />} />
                         <Route path="/accounts" render={props => <Accounts {...props} />} />
-                        <Redirect from="/manager/reload" to="manager" />
+                        <Route path="/card" render={props => <Card {...props} />} />
+                        <Redirect from="/manager/reload" to="/manager" />
                         <Route path="/manager" render={props => <Manager {...props} />} />
                         <Route
                           path="/platform"
@@ -188,6 +192,15 @@ export default function Default() {
                         <Route path="/lend" render={props => <Lend {...props} />} />
                         <Route path="/exchange" render={props => <Exchange {...props} />} />
                         <Route
+                          exact
+                          path="/account/:id/nft-collection"
+                          render={props => <NFTGallery {...props} />}
+                        />
+                        <Route
+                          path="/account/:id/nft-collection/:collectionAddress?"
+                          render={props => <NFTCollection {...props} />}
+                        />
+                        <Route
                           path="/account/:parentId/:id"
                           render={props => <Account {...props} />}
                         />
@@ -196,16 +209,28 @@ export default function Default() {
                           path="/asset/:assetId+"
                           render={(props: any) => <Asset {...props} />}
                         />
-                        <Route path="/swap" render={props => <SwapComponent {...props} />} />
+                        <Route path="/swap" render={props => <Swap2 {...props} />} />
+                        <Route
+                          path="/USBTroubleshooting"
+                          render={props => <USBTroubleshooting {...props} />}
+                        />
+
+                        <Route
+                          path="/market/:currencyId"
+                          render={props => <MarketCoinScreen {...props} />}
+                        />
+                        <Route path="/market" render={props => <Market {...props} />} />
+                        <FeatureToggle feature="learn">
+                          <Route path="/learn" render={props => <Learn {...props} />} />
+                        </FeatureToggle>
                       </Switch>
                     </Page>
                     <Drawer />
                     <ToastOverlay />
                   </Box>
 
-                  {process.env.NIGHTLY ? <NightlyLayer /> : null}
+                  {__NIGHTLY__ ? <NightlyLayer /> : null}
 
-                  <LibcoreBusyIndicator />
                   <DeviceBusyIndicator />
                   <KeyboardContent sequence="BJBJBJ">
                     <PerfIndicator />

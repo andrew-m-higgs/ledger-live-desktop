@@ -3,20 +3,28 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useDispatch } from "react-redux";
 import Button from "~/renderer/components/Button";
 import RepairModal from "~/renderer/modals/RepairModal";
 import { command } from "~/renderer/commands";
 import logger from "~/logger";
 import { useHistory } from "react-router-dom";
 import { setTrackingSource } from "~/renderer/analytics/TrackPage";
+import { openModal, closeModal } from "~/renderer/actions/modals";
 
 type Props = {
   buttonProps?: *,
   onRepair?: boolean => void,
+  onClose?: ({ needHelp?: boolean }) => void,
+  Component?: any,
 };
 
-const RepairDeviceButton = ({ onRepair, buttonProps }: Props) => {
+const RepairDeviceButton: React$ComponentType<Props> = React.forwardRef(function RepairDevice(
+  { onRepair, onClose, buttonProps, Component }: Props,
+  ref: React$ElementRef<*>,
+) {
   const { t } = useTranslation();
+  const dispatch = useDispatch();
   const [opened, setOpened] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,20 +47,30 @@ const RepairDeviceButton = ({ onRepair, buttonProps }: Props) => {
 
   const open = useCallback(() => {
     setError(null);
+    // NB due to the fact that this modal is not part of the modals layer, we need to dispatch the open modal
+    // event to have the backdrop layer added. I'm not refactoring the modal because of fear.
+    dispatch(openModal("MODAL_STUB"));
     setOpened(true);
-  }, [setError, setOpened]);
+  }, [dispatch]);
 
-  const close = useCallback(() => {
-    if (sub && sub.current) sub.current.unsubscribe();
-    if (timeout && timeout.current) clearTimeout(timeout.current);
-    if (onRepair) {
-      onRepair(false);
-    }
-    setOpened(false);
-    setIsLoading(false);
-    setError(null);
-    setProgress(0);
-  }, [sub, timeout, onRepair, setOpened, setIsLoading, setError, setProgress]);
+  const close = useCallback(
+    ({ needHelp }: { needHelp?: boolean }) => {
+      if (sub && sub.current) sub.current.unsubscribe();
+      if (timeout && timeout.current) clearTimeout(timeout.current);
+      if (onRepair) {
+        onRepair(false);
+      }
+      if (onClose) {
+        onClose({ needHelp });
+      }
+      setOpened(false);
+      dispatch(closeModal("MODAL_STUB"));
+      setIsLoading(false);
+      setError(null);
+      setProgress(0);
+    },
+    [onRepair, onClose, dispatch],
+  );
 
   const repair = useCallback(
     (version = null) => {
@@ -93,9 +111,13 @@ const RepairDeviceButton = ({ onRepair, buttonProps }: Props) => {
 
   return (
     <>
-      <Button {...buttonProps} onClick={open} event="RepairDeviceButton">
-        {t("settings.repairDevice.button")}
-      </Button>
+      {Component ? (
+        <Component onClick={open} />
+      ) : (
+        <Button {...buttonProps} ref={ref} onClick={open} event="RepairDeviceButton">
+          {t("settings.repairDevice.button")}
+        </Button>
+      )}
       <RepairModal
         cancellable
         analyticsName="RepairDevice"
@@ -108,9 +130,10 @@ const RepairDeviceButton = ({ onRepair, buttonProps }: Props) => {
         desc={t("settings.repairDevice.desc")}
         progress={progress}
         error={error}
+        enableSomethingElseChoice
       />
     </>
   );
-};
+});
 
 export default RepairDeviceButton;

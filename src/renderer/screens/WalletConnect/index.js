@@ -23,7 +23,7 @@ const Container: ThemedComponent<*> = styled.div`
   flex-direction: column;
   position: relative;
   flex: 1;
-  background: rgba(100, 144, 241, 0.1);
+  background: rgba(138, 128, 219, 0.1);
 `;
 
 const InnerContainer: ThemedComponent<*> = styled(Box)`
@@ -77,6 +77,7 @@ const AccountContainer: ThemedComponent<*> = styled(Box)`
 const Logo: ThemedComponent<*> = styled.img`
   width: 100%;
   height: 100%;
+  object-fit: contain;
 `;
 
 const InfoBoxContainer: ThemedComponent<*> = styled.div`
@@ -141,7 +142,10 @@ const WalletConnect = () => {
             {wcContext.socketReady ? (
               <InfoBoxContainer>
                 <Alert type="primary">
-                  <Trans i18nKey="walletconnect.connectedscreen.info" />
+                  <Trans
+                    i18nKey="walletconnect.connectedscreen.info"
+                    values={{ name: wcContext.dappInfo?.name }}
+                  />
                 </Alert>
               </InfoBoxContainer>
             ) : null}

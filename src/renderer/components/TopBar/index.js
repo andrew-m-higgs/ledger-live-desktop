@@ -26,7 +26,6 @@ import IconSettings from "~/renderer/icons/Settings";
 
 // TODO: ActivityIndicator
 import ActivityIndicator from "./ActivityIndicator";
-import { ServiceStatusIndicator } from "./ServiceStatusIndicator";
 import { setDiscreetMode } from "~/renderer/actions/settings";
 import { hasPasswordSelector } from "~/renderer/reducers/application";
 import { NotificationIndicator } from "~/renderer/components/TopBar/NotificationIndicator";
@@ -105,13 +104,16 @@ const TopBar = () => {
               </>
             )}
             <LiveAppDrawer />
-            <ServiceStatusIndicator />
             <NotificationIndicator />
             <Box justifyContent="center">
               <Bar />
             </Box>
             <Tooltip content={t("settings.discreet")} placement="bottom">
-              <ItemContainer id="topbar-discreet-button" isInteractive onClick={handleDiscreet}>
+              <ItemContainer
+                data-test-id="topbar-discreet-button"
+                isInteractive
+                onClick={handleDiscreet}
+              >
                 {discreetMode ? <IconEyeOff size={16} /> : <IconEye size={16} />}
               </ItemContainer>
             </Tooltip>
@@ -120,7 +122,7 @@ const TopBar = () => {
             </Box>
             <Tooltip content={t("settings.helpButton")} placement="bottom">
               <ItemContainer
-                id="topbar-help-button"
+                data-test-id="topbar-help-button"
                 isInteractive
                 onClick={() => setHelpSideBarVisible(true)}
               >
@@ -138,7 +140,7 @@ const TopBar = () => {
                 </Box>
                 <Tooltip content={t("common.lock")}>
                   <ItemContainer
-                    id="topbar-password-lock-button"
+                    data-test-id="topbar-password-lock-button"
                     isInteractive
                     justifyContent="center"
                     onClick={handleLock}
@@ -152,7 +154,11 @@ const TopBar = () => {
               <Bar />
             </Box>
             <Tooltip content={t("settings.title")} placement="bottom">
-              <ItemContainer id="topbar-settings-button" isInteractive onClick={navigateToSettings}>
+              <ItemContainer
+                data-test-id="topbar-settings-button"
+                isInteractive
+                onClick={navigateToSettings}
+              >
                 <IconSettings size={16} />
               </ItemContainer>
             </Tooltip>

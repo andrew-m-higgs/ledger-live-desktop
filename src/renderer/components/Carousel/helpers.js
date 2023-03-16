@@ -1,6 +1,6 @@
 // @flow
 import React, { useMemo } from "react";
-import _ from "lodash";
+import map from "lodash/map";
 import { Trans } from "react-i18next";
 import Slide from "./Slide";
 import { urls } from "~/config/urls";
@@ -221,10 +221,10 @@ const SLIDES = [
     ],
   },
   {
-    url: urls.banners.backupPack,
-    name: "backupPack",
-    title: <Trans i18nKey={`banners.backupPack.title`} />,
-    description: <Trans i18nKey={`banners.backupPack.description`} />,
+    url: urls.banners.familyPack,
+    name: "familyPack",
+    title: <Trans i18nKey={`banners.familyPack.title`} />,
+    description: <Trans i18nKey={`banners.familyPack.description`} />,
     imgs: [
       {
         // $FlowFixMe
@@ -238,7 +238,7 @@ const SLIDES = [
       {
         // $FlowFixMe
         source: require("./banners/BackupPack/images/nanos.png").default,
-        transform: [-35, -25, 5, -25],
+        transform: [-55, 13, 5, 15],
         size: {
           width: 162,
           height: 167,
@@ -246,37 +246,20 @@ const SLIDES = [
       },
       {
         // $FlowFixMe
-        source: require("./banners/BackupPack/images/nanox.png").default,
-        transform: [55, 25, 5, 25],
+        source: require("./banners/BackupPack/images/nanos.png").default,
+        transform: [0, 15, 5, 15],
         size: {
-          width: 151,
-          height: 163,
-        },
-      },
-    ],
-  },
-  {
-    url: urls.banners.polkaStake,
-    name: "polkaStake",
-    title: <Trans i18nKey={`banners.polkaStake.title`} />,
-    description: <Trans i18nKey={`banners.polkaStake.description`} />,
-    imgs: [
-      {
-        // $FlowFixMe
-        source: require("./banners/PolkaStake/images/BG.png").default,
-        transform: [0, 60, 5, 60],
-        size: {
-          width: 133,
-          height: 111,
+          width: 162,
+          height: 167,
         },
       },
       {
         // $FlowFixMe
-        source: require("./banners/PolkaStake/images/hand.png").default,
-        transform: [15, 25, -13, 25],
+        source: require("./banners/BackupPack/images/nanos.png").default,
+        transform: [55, 17, 5, 15],
         size: {
-          width: 111,
-          height: 135,
+          width: 162,
+          height: 167,
         },
       },
     ],
@@ -287,7 +270,7 @@ export const useDefaultSlides = () => {
   return useMemo(
     () =>
       // $FlowFixMe
-      _.map(process.env.SPECTRON_RUN ? [SLIDES[2], SLIDES[1]] : SLIDES, (slide: Props) => ({
+      map(process.env.PLAYWRIGHT_RUN ? [SLIDES[2], SLIDES[1]] : SLIDES, (slide: Props) => ({
         id: slide.name,
         // eslint-disable-next-line react/display-name
         Component: () => <Slide {...slide} />,

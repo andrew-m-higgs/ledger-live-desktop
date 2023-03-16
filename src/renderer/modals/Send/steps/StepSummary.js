@@ -23,7 +23,7 @@ import IconWallet from "~/renderer/icons/Wallet";
 import { rgba } from "~/renderer/styles/helpers";
 import CounterValue from "~/renderer/components/CounterValue";
 import Alert from "~/renderer/components/Alert";
-
+import NFTSummary from "~/renderer/screens/nft/Send/Summary";
 import type { ThemedComponent } from "~/renderer/styles/StyleProvider";
 import type { StepProps } from "../types";
 import AccountTagDerivationMode from "~/renderer/components/AccountTagDerivationMode";
@@ -57,7 +57,7 @@ const WARN_FROM_UTXO_COUNT = 50;
 
 export default class StepSummary extends PureComponent<StepProps> {
   render() {
-    const { account, parentAccount, transaction, status, currencyName } = this.props;
+    const { account, parentAccount, transaction, status, currencyName, isNFTSend } = this.props;
     if (!account) return null;
     const mainAccount = getMainAccount(account, parentAccount);
     if (!mainAccount || !transaction) return null;
@@ -77,7 +77,12 @@ export default class StepSummary extends PureComponent<StepProps> {
 
     return (
       <Box flow={4} mx={40}>
-        <TrackPage category="Send Flow" name="Step Summary" currencyName={currencyName} />
+        <TrackPage
+          category="Send Flow"
+          name="Step Summary"
+          currencyName={currencyName}
+          isNFTSend={isNFTSend}
+        />
         {utxoLag ? (
           <Alert type="warning">
             <Trans i18nKey="send.steps.details.utxoLag" />
@@ -142,31 +147,35 @@ export default class StepSummary extends PureComponent<StepProps> {
               </Text>
             </Box>
           )}
-          <Box horizontal justifyContent="space-between" mb={2}>
-            <Text ff="Inter|Medium" color="palette.text.shade40" fontSize={4}>
-              <Trans i18nKey="send.steps.details.amount" />
-            </Text>
-            <Box>
-              <FormattedVal
-                color={"palette.text.shade80"}
-                disableRounding
-                unit={unit}
-                val={amount}
-                fontSize={4}
-                inline
-                showCode
-              />
-              <Box textAlign="right">
-                <CounterValue
-                  color="palette.text.shade60"
-                  fontSize={3}
-                  currency={currency}
-                  value={amount}
-                  alwaysShowSign={false}
+          {!isNFTSend ? (
+            <Box horizontal justifyContent="space-between" mb={2}>
+              <Text ff="Inter|Medium" color="palette.text.shade40" fontSize={4}>
+                <Trans i18nKey="send.steps.details.amount" />
+              </Text>
+              <Box>
+                <FormattedVal
+                  color={"palette.text.shade80"}
+                  disableRounding
+                  unit={unit}
+                  val={amount}
+                  fontSize={4}
+                  inline
+                  showCode
                 />
+                <Box textAlign="right">
+                  <CounterValue
+                    color="palette.text.shade60"
+                    fontSize={3}
+                    currency={currency}
+                    value={amount}
+                    alwaysShowSign={false}
+                  />
+                </Box>
               </Box>
             </Box>
-          </Box>
+          ) : (
+            <NFTSummary transaction={transaction} />
+          )}
           <Box horizontal justifyContent="space-between">
             <Text ff="Inter|Medium" color="palette.text.shade40" fontSize={4}>
               <Trans i18nKey="send.steps.details.fees" />
@@ -176,6 +185,7 @@ export default class StepSummary extends PureComponent<StepProps> {
                 color={feeTooHigh ? "warning" : "palette.text.shade80"}
                 disableRounding
                 unit={feesUnit}
+                alwaysShowValue
                 val={estimatedFees}
                 fontSize={4}
                 inline
@@ -188,6 +198,7 @@ export default class StepSummary extends PureComponent<StepProps> {
                   currency={feesCurrency}
                   value={estimatedFees}
                   alwaysShowSign={false}
+                  alwaysShowValue
                 />
               </Box>
             </Box>
@@ -218,6 +229,7 @@ export default class StepSummary extends PureComponent<StepProps> {
                     fontSize={4}
                     inline
                     showCode
+                    alwaysShowValue
                   />
                   <Box textAlign="right">
                     <CounterValue
@@ -226,6 +238,7 @@ export default class StepSummary extends PureComponent<StepProps> {
                       currency={currency}
                       value={totalSpent}
                       alwaysShowSign={false}
+                      alwaysShowValue
                     />
                   </Box>
                 </Box>

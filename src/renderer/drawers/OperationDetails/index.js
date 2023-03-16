@@ -1,6 +1,6 @@
 // @flow
 
-import React, { Component, useCallback } from "react";
+import React, { useMemo, Component, useCallback } from "react";
 import { connect } from "react-redux";
 import { useHistory, useLocation } from "react-router-dom";
 import { Trans, withTranslation } from "react-i18next";
@@ -24,8 +24,11 @@ import {
   getOperationAmountNumber,
   getOperationConfirmationDisplayableNumber,
   isConfirmedOperation,
+  flattenOperationWithInternalsAndNfts,
 } from "@ledgerhq/live-common/lib/operation";
 import type { Account, AccountLike, Operation } from "@ledgerhq/live-common/lib/types";
+import { useNftMetadata } from "@ledgerhq/live-common/lib/nft/NftMetadataProvider";
+import Skeleton from "~/renderer/screens/nft/Skeleton";
 
 import { urls } from "~/config/urls";
 import TrackPage, { setTrackingSource } from "~/renderer/analytics/TrackPage";
@@ -52,7 +55,7 @@ import {
   confirmationsNbForCurrencySelector,
   marketIndicatorSelector,
 } from "~/renderer/reducers/settings";
-import { getMarketColor } from "~/renderer/styles/helpers";
+import { getMarketColor, centerEllipsis } from "~/renderer/styles/helpers";
 
 import {
   OpDetailsSection,
@@ -72,6 +75,7 @@ import { setDrawer } from "../Provider";
 import { SplitAddress } from "~/renderer/components/OperationsList/AddressCell";
 import CryptoCurrencyIcon from "~/renderer/components/CryptoCurrencyIcon";
 import AmountDetails from "./AmountDetails";
+import NFTOperationDetails from "./NFTOperationDetails";
 
 const mapStateToProps = (state, { operationId, accountId, parentId }) => {
   const marketIndicator = marketIndicatorSelector(state);
@@ -90,7 +94,15 @@ const mapStateToProps = (state, { operationId, accountId, parentId }) => {
   const confirmationsNb = mainCurrency
     ? confirmationsNbForCurrencySelector(state, { currency: mainCurrency })
     : 0;
-  const operation = account ? findOperationInAccount(account, operationId) : null;
+
+  let operation = account ? findOperationInAccount(account, operationId) : null;
+  if (!operation) {
+    // Fixme, temporary fallback to try to find the operation inside NTF operations
+    operation = account.operations
+      .flatMap(flattenOperationWithInternalsAndNfts)
+      .find(o => o.id === operationId);
+  }
+
   return {
     marketIndicator,
     account,
@@ -121,12 +133,26 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
   const location = useLocation();
 
   const mainAccount = getMainAccount(account, parentAccount);
-  const { extra, hash, date, senders, type, fee, recipients: _recipients } = operation;
+  const {
+    extra,
+    hash,
+    date,
+    senders,
+    type,
+    fee,
+    recipients: _recipients,
+    contract,
+    tokenId,
+  } = operation;
   const recipients = _recipients.filter(Boolean);
   const { name } = mainAccount;
+  const isNftOperation = ["NFT_IN", "NFT_OUT"].includes(operation.type);
 
   const currency = getAccountCurrency(account);
   const mainCurrency = getAccountCurrency(mainAccount);
+
+  const { status, metadata } = useNftMetadata(contract, tokenId, currency.id);
+  const show = useMemo(() => status === "loading", [status]);
 
   const unit = getAccountUnit(account);
 
@@ -268,35 +294,51 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
       >
         <Trans i18nKey={`operation.type.${operation.type}`} />
       </Text>
-      <Box alignItems="center" mt={0}>
-        {!amount.isZero() && (
-          <Box selectable>
-            {hasFailed ? (
-              <Box color="alertRed">
-                <Trans i18nKey="operationDetails.failed" />
-              </Box>
-            ) : (
-              <ToolTip
-                content={
-                  AmountTooltip ? (
-                    <AmountTooltip operation={operation} amount={amount} unit={unit} />
-                  ) : null
-                }
-              >
-                <FormattedVal
-                  color={amount.isNegative() ? "palette.text.shade80" : undefined}
-                  unit={unit}
-                  alwaysShowSign
-                  showCode
-                  val={amount}
-                  fontSize={7}
-                  disableRounding
-                />
-              </ToolTip>
-            )}
-          </Box>
-        )}
-      </Box>
+      {/* TODO clean up these conditional components into currency specific blocks */}
+      {!isNftOperation ? (
+        <Box alignItems="center" mt={0}>
+          {!amount.isZero() && (
+            <Box selectable>
+              {hasFailed ? (
+                <Box color="alertRed">
+                  <Trans i18nKey="operationDetails.failed" />
+                </Box>
+              ) : (
+                <ToolTip
+                  content={
+                    AmountTooltip ? (
+                      <AmountTooltip operation={operation} amount={amount} unit={unit} />
+                    ) : null
+                  }
+                >
+                  <FormattedVal
+                    color={amount.isNegative() ? "palette.text.shade80" : undefined}
+                    unit={unit}
+                    alwaysShowSign
+                    showCode
+                    val={amount}
+                    fontSize={7}
+                    disableRounding
+                  />
+                </ToolTip>
+              )}
+            </Box>
+          )}
+        </Box>
+      ) : (
+        <Box flex={1} mb={2} alignItems="center">
+          <Skeleton show={show} width={160} barHeight={16} minHeight={32} textAlign="center">
+            <Text ff="Inter|SemiBold" textAlign="center" fontSize={7} color="palette.text.shade80">
+              {metadata?.nftName || "-"}
+            </Text>
+          </Skeleton>
+          <Skeleton show={show} width={200} barHeight={10} minHeight={24} mt={1} textAlign="center">
+            <Text ff="Inter|Regular" textAlign="center" fontSize={5} color="palette.text.shade50">
+              ID {centerEllipsis(operation.tokenId)}
+            </Text>
+          </Skeleton>
+        </Box>
+      )}
       {url ? (
         <Box m={0} ff="Inter|SemiBold" horizontal justifyContent="center" fontSize={4} my={1}>
           <LinkWithExternalIcon
@@ -306,26 +348,28 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
           />
         </Box>
       ) : null}
-      <OpDetailsSection>
-        <OpDetailsTitle>{t("operationDetails.amount")}</OpDetailsTitle>
-        <OpDetailsData onClick={openAmountDetails}>
-          <OpDetailsSideButton mt={0}>
-            <Box mr={2}>
-              {hasFailed ? null : (
-                <CounterValue
-                  alwaysShowSign
-                  color="palette.text.shade60"
-                  fontSize={3}
-                  date={date}
-                  currency={currency}
-                  value={amount}
-                />
-              )}
-            </Box>
-            <IconChevronRight size={12} />
-          </OpDetailsSideButton>
-        </OpDetailsData>
-      </OpDetailsSection>
+      {!isNftOperation ? (
+        <OpDetailsSection>
+          <OpDetailsTitle>{t("operationDetails.amount")}</OpDetailsTitle>
+          <OpDetailsData onClick={openAmountDetails}>
+            <OpDetailsSideButton mt={0}>
+              <Box mr={2}>
+                {hasFailed ? null : (
+                  <CounterValue
+                    alwaysShowSign
+                    color="palette.text.shade60"
+                    fontSize={3}
+                    date={date}
+                    currency={currency}
+                    value={amount}
+                  />
+                )}
+              </Box>
+              <IconChevronRight size={12} />
+            </OpDetailsSideButton>
+          </OpDetailsData>
+        </OpDetailsSection>
+      ) : null}
       {(isNegative || fee) && (
         <OpDetailsSection>
           <OpDetailsTitle>{t("operationDetails.fees")}</OpDetailsTitle>
@@ -404,7 +448,7 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
               : isConfirmed
               ? t("operationDetails.confirmed")
               : t("operationDetails.notConfirmed")}
-            {process.env.SPECTRON_RUN
+            {process.env.PLAYWRIGHT_RUN
               ? ""
               : hasFailed
               ? null
@@ -522,6 +566,7 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
           </Box>
         </OpDetailsData>
       </OpDetailsSection>
+      {isNftOperation ? <NFTOperationDetails operation={operation} /> : null}
       <OpDetailsSection>
         <OpDetailsTitle>{t("operationDetails.date")}</OpDetailsTitle>
         <OpDetailsData>
@@ -572,7 +617,7 @@ const OperationD: React$ComponentType<Props> = (props: Props) => {
         </OpDetailsSection>
       ) : null}
       <B />
-      <OpDetailsExtra extra={extra} type={type} account={account} />
+      <OpDetailsExtra operation={operation} extra={extra} type={type} account={account} />
     </Box>
   );
 };

@@ -1,9 +1,9 @@
 // @flow
-import React, { useCallback } from "react";
+import React, { useCallback, useContext, useEffect } from "react";
 import { BigNumber } from "bignumber.js";
 import map from "lodash/map";
 import { Trans } from "react-i18next";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import { useHistory } from "react-router-dom";
 import styled from "styled-components";
 import type {
@@ -16,8 +16,14 @@ import { WrongDeviceForAccount, UpdateYourApp } from "@ledgerhq/errors";
 import { LatestFirmwareVersionRequired } from "@ledgerhq/live-common/lib/errors";
 import type { DeviceModelId } from "@ledgerhq/devices";
 import type { Device } from "@ledgerhq/live-common/lib/hw/actions/types";
-import { getAccountUnit, getMainAccount } from "@ledgerhq/live-common/lib/account";
+import {
+  getAccountUnit,
+  getMainAccount,
+  getAccountName,
+  getAccountCurrency,
+} from "@ledgerhq/live-common/lib/account";
 import { closeAllModal } from "~/renderer/actions/modals";
+import { setNotSeededDeviceRelaunch } from "~/renderer/actions/application";
 import Animation from "~/renderer/animations";
 import Button from "~/renderer/components/Button";
 import TranslatedError from "~/renderer/components/TranslatedError";
@@ -36,16 +42,21 @@ import SupportLinkError from "~/renderer/components/SupportLinkError";
 import { urls } from "~/config/urls";
 import CurrencyUnitValue from "~/renderer/components/CurrencyUnitValue";
 import ExternalLinkButton from "../ExternalLinkButton";
-import { setTrackingSource } from "~/renderer/analytics/TrackPage";
+import TrackPage, { setTrackingSource } from "~/renderer/analytics/TrackPage";
 import { Rotating } from "~/renderer/components/Spinner";
 import ProgressCircle from "~/renderer/components/ProgressCircle";
 import CrossCircle from "~/renderer/icons/CrossCircle";
+import { getProviderIcon } from "~/renderer/screens/exchange/Swap2/utils";
+import CryptoCurrencyIcon from "~/renderer/components/CryptoCurrencyIcon";
+import { SWAP_VERSION } from "~/renderer/screens/exchange/Swap2/utils/index";
+import { context } from "~/renderer/drawers/Provider";
+import { track } from "~/renderer/analytics/segment";
+import { relaunchOnboarding } from "~/renderer/actions/onboarding";
 
-const AnimationWrapper: ThemedComponent<{ modelId?: DeviceModelId }> = styled.div`
+export const AnimationWrapper: ThemedComponent<{ modelId?: DeviceModelId }> = styled.div`
   width: 600px;
   max-width: 100%;
-  height: ${p => (p.modelId === "blue" ? 300 : 200)}px;
-  padding-bottom: ${p => (p.modelId === "blue" ? 20 : 0)}px;
+  padding-bottom: 20px;
   align-self: center;
   display: flex;
   align-items: center;
@@ -60,7 +71,7 @@ const ProgressWrapper: ThemedComponent<{}> = styled.div`
   justify-content: center;
 `;
 
-const Wrapper: ThemedComponent<{}> = styled.div`
+export const Wrapper: ThemedComponent<{}> = styled.div`
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -75,11 +86,16 @@ const Logo: ThemedComponent<{ warning?: boolean }> = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: ${p => (p.warning ? p.theme.colors.warning : p.theme.colors.alertRed)};
+  color: ${p =>
+    p.info
+      ? p.theme.colors.palette.primary.main
+      : p.warning
+      ? p.theme.colors.warning
+      : p.theme.colors.alertRed};
   margin-bottom: 20px;
 `;
 
-const Header = styled.div`
+export const Header: ThemedComponent<{}> = styled.div`
   display: flex;
   flex: 1 0 0%;
   flex-direction: column;
@@ -88,7 +104,7 @@ const Header = styled.div`
   align-items: center;
 `;
 
-const Footer = styled.div`
+export const Footer: ThemedComponent<{}> = styled.div`
   display: flex;
   flex: 1 0 0%;
   flex-direction: column;
@@ -97,7 +113,7 @@ const Footer = styled.div`
   align-items: center;
 `;
 
-const Title = styled(Text).attrs({
+export const Title: ThemedComponent<{}> = styled(Text).attrs({
   ff: "Inter|SemiBold",
   color: "palette.text.shade100",
   textAlign: "center",
@@ -106,7 +122,7 @@ const Title = styled(Text).attrs({
   white-space: pre-line;
 `;
 
-const SubTitle = styled(Text).attrs({
+export const SubTitle: ThemedComponent<{}> = styled(Text).attrs({
   ff: "Inter|Regular",
   color: "palette.text.shade100",
   textAlign: "center",
@@ -139,8 +155,9 @@ const ButtonContainer = styled(Box).attrs(p => ({
   horizontal: true,
 }))``;
 
-const TroobleshootingWrapper = styled.div`
+const TroubleshootingWrapper = styled.div`
   margin-top: auto;
+  margin-bottom: 16px;
 `;
 
 // these are not components because we want reconciliation to not remount the sub elements
@@ -184,14 +201,17 @@ const OpenManagerBtn = ({
   updateApp,
   firmwareUpdate,
   mt = 2,
+  ml = 0,
 }: {
   closeAllModal: () => void,
   appName?: string,
   updateApp?: boolean,
   firmwareUpdate?: boolean,
   mt?: number,
+  ml?: number,
 }) => {
   const history = useHistory();
+  const { setDrawer } = useContext(context);
 
   const onClick = useCallback(() => {
     const urlParams = new URLSearchParams({
@@ -206,11 +226,31 @@ const OpenManagerBtn = ({
       search: search ? `?${search}` : "",
     });
     closeAllModal();
-  }, [updateApp, firmwareUpdate, appName, history, closeAllModal]);
+    setDrawer(undefined);
+  }, [updateApp, firmwareUpdate, appName, history, closeAllModal, setDrawer]);
 
   return (
-    <Button mt={mt} primary onClick={onClick}>
+    <Button mt={mt} ml={ml} primary onClick={onClick}>
       <Trans i18nKey="DeviceAction.openManager" />
+    </Button>
+  );
+};
+
+const OpenOnboardingBtn = () => {
+  const { setDrawer } = useContext(context);
+  const dispatch = useDispatch();
+
+  const onClick = useCallback(() => {
+    setTrackingSource("device action open onboarding button");
+    dispatch(setNotSeededDeviceRelaunch(true));
+    dispatch(relaunchOnboarding(true));
+    dispatch(closeAllModal());
+    setDrawer(undefined);
+  }, [dispatch, setDrawer]);
+
+  return (
+    <Button primary onClick={onClick}>
+      <Trans i18nKey="DeviceAction.openOnboarding" />
     </Button>
   );
 };
@@ -241,25 +281,37 @@ export const renderRequiresAppInstallation = ({ appNames }: { appNames: string[]
   );
 };
 
-export const renderInstallingApp = ({
+export const InstallingApp = ({
+  modelId,
+  type,
   appName,
   progress,
+  request,
+  analyticsPropertyFlow = "unknown",
 }: {
+  modelId: DeviceModelId,
+  type: "light" | "dark",
   appName: string,
   progress: number,
+  request: any,
+  analyticsPropertyFlow?: string,
 }) => {
+  const currency = request?.currency || request?.account?.currency;
+  const appNameToTrack = appName || request?.appName || currency?.managerAppName;
+  const cleanProgress = progress ? Math.round(progress * 100) : null;
+  useEffect(() => {
+    const trackingArgs = [
+      "In-line app install",
+      { appName: appNameToTrack, flow: analyticsPropertyFlow },
+    ];
+    track(...trackingArgs);
+  }, [appNameToTrack, analyticsPropertyFlow]);
   return (
     <Wrapper id="deviceAction-loading">
       <Header />
-      <ProgressWrapper>
-        {progress ? (
-          <ProgressCircle size={58} progress={progress} />
-        ) : (
-          <Rotating size={58}>
-            <ProgressCircle hideProgress size={58} progress={0.06} />
-          </Rotating>
-        )}
-      </ProgressWrapper>
+      <AnimationWrapper modelId={modelId}>
+        <Animation animation={getDeviceAnimation(modelId, type, "installLoading")} />
+      </AnimationWrapper>
       <Footer>
         <Title>
           <Trans i18nKey="DeviceAction.installApp" values={{ appName }} />
@@ -267,6 +319,7 @@ export const renderInstallingApp = ({
         <SubTitle>
           <Trans i18nKey="DeviceAction.installAppDescription" />
         </SubTitle>
+        {cleanProgress ? <Title>{`${cleanProgress}%`}</Title> : null}
       </Footer>
     </Wrapper>
   );
@@ -384,8 +437,10 @@ export const renderError = ({
   list,
   supportLink,
   warning,
+  info,
   managerAppName,
   requireFirmwareUpdate,
+  withOnboardingCTA,
 }: {
   error: Error,
   withOpenManager?: boolean,
@@ -394,11 +449,13 @@ export const renderError = ({
   list?: boolean,
   supportLink?: string,
   warning?: boolean,
+  info?: boolean,
   managerAppName?: string,
   requireFirmwareUpdate?: boolean,
+  withOnboardingCTA?: boolean,
 }) => (
   <Wrapper id={`error-${error.name}`}>
-    <Logo warning={warning}>
+    <Logo info={info} warning={warning}>
       <ErrorIcon size={44} error={error} />
     </Logo>
     <ErrorTitle>
@@ -435,11 +492,14 @@ export const renderError = ({
               mx={1}
             />
           ) : null}
-          {onRetry ? (
+          {withOpenManager ? (
+            <OpenManagerButton mt={0} ml={withExportLogs ? 4 : 0} />
+          ) : onRetry ? (
             <Button primary ml={withExportLogs ? 4 : 0} onClick={onRetry}>
               <Trans i18nKey="common.retry" />
             </Button>
           ) : null}
+          {withOnboardingCTA ? <OpenOnboardingBtn /> : null}
         </>
       )}
     </ButtonContainer>
@@ -494,9 +554,9 @@ export const renderConnectYourDevice = ({
         />
       </Title>
       {!device ? (
-        <TroobleshootingWrapper>
+        <TroubleshootingWrapper>
           <ConnectTroubleshooting onRepair={onRepairModal} />
-        </TroobleshootingWrapper>
+        </TroubleshootingWrapper>
       ) : null}
     </Footer>
   </Wrapper>
@@ -593,21 +653,137 @@ export const renderSwapDeviceConfirmation = ({
   );
 };
 
-export const renderSellDeviceConfirmation = ({
+export const renderSwapDeviceConfirmationV2 = ({
+  modelId,
+  type,
+  transaction,
+  status,
+  exchangeRate,
+  exchange,
+  amountExpectedTo,
+  estimatedFees,
+}: {
+  modelId: DeviceModelId,
+  type: "light" | "dark",
+  transaction: Transaction,
+  status: TransactionStatus,
+  exchangeRate: ExchangeRate,
+  exchange: Exchange,
+  amountExpectedTo?: string,
+  estimatedFees?: string,
+}) => {
+  const ProviderIcon = getProviderIcon(exchangeRate);
+  const [sourceAccountName, sourceAccountCurrency] = [
+    getAccountName(exchange.fromAccount),
+    getAccountCurrency(exchange.fromAccount),
+  ];
+  const [targetAccountName, targetAccountCurrency] = [
+    getAccountName(exchange.toAccount),
+    getAccountCurrency(exchange.toAccount),
+  ];
+  return (
+    <>
+      <TrackPage
+        category="Swap"
+        name={`ModalStep-summary`}
+        sourcecurrency={sourceAccountCurrency?.name}
+        targetcurrency={targetAccountCurrency?.name}
+        provider={exchangeRate.provider}
+        swapVersion={SWAP_VERSION}
+      />
+      <Box flex={0}>
+        <Alert type="primary" learnMoreUrl={urls.swap.learnMore} mb={7} mx={4}>
+          <Trans i18nKey="DeviceAction.swap.notice" />
+        </Alert>
+      </Box>
+      <Box mx={6} data-test-id="device-confirm-swap">
+        {map(
+          {
+            amountSent: (
+              <CurrencyUnitValue
+                unit={getAccountUnit(exchange.fromAccount)}
+                value={transaction.amount}
+                disableRounding
+                showCode
+              />
+            ),
+            amountReceived: (
+              <CurrencyUnitValue
+                unit={getAccountUnit(exchange.toAccount)}
+                value={amountExpectedTo ? BigNumber(amountExpectedTo) : exchangeRate.toAmount}
+                disableRounding
+                showCode
+              />
+            ),
+            provider: (
+              <Box horizontal alignItems="center" style={{ gap: "6px" }}>
+                <ProviderIcon size={18} />
+                <Text style={{ textTransform: "capitalize" }}>{exchangeRate.provider}</Text>
+              </Box>
+            ),
+            fees: (
+              <CurrencyUnitValue
+                unit={getAccountUnit(
+                  getMainAccount(exchange.fromAccount, exchange.fromParentAccount),
+                )}
+                value={BigNumber(estimatedFees || 0)}
+                disableRounding
+                showCode
+              />
+            ),
+            sourceAccount: (
+              <Box horizontal alignItems="center" style={{ gap: "6px" }}>
+                {sourceAccountCurrency && (
+                  <CryptoCurrencyIcon circle currency={sourceAccountCurrency} size={18} />
+                )}
+                <Text style={{ textTransform: "capitalize" }}>{sourceAccountName}</Text>
+              </Box>
+            ),
+            targetAccount: (
+              <Box horizontal alignItems="center" style={{ gap: "6px" }}>
+                {targetAccountCurrency && (
+                  <CryptoCurrencyIcon circle currency={targetAccountCurrency} size={18} />
+                )}
+                <Text style={{ textTransform: "capitalize" }}>{targetAccountName}</Text>
+              </Box>
+            ),
+          },
+          (value, key) => {
+            return (
+              <Box horizontal justifyContent="space-between" key={key} mb={4}>
+                <Text ff="Inter|Medium" color="palette.text.shade40" fontSize="14px">
+                  <Trans i18nKey={`DeviceAction.swap2.${key}`} />
+                </Text>
+                <Text ff="Inter|SemiBold" color="palette.text.shade100" fontSize="14px">
+                  {value}
+                </Text>
+              </Box>
+            );
+          },
+        )}
+      </Box>
+      {renderVerifyUnwrapped({ modelId, type })}
+    </>
+  );
+};
+
+export const renderSecureTransferDeviceConfirmation = ({
+  exchangeType,
   modelId,
   type,
 }: {
+  exchangeType: "sell" | "fund",
   modelId: DeviceModelId,
   type: "light" | "dark",
 }) => (
   <>
     <Alert type="primary" learnMoreUrl={urls.swap.learnMore} horizontal={false}>
-      <Trans i18nKey="DeviceAction.sell.notice" />
+      <Trans i18nKey={`DeviceAction.${exchangeType}.notice`} />
     </Alert>
     {renderVerifyUnwrapped({ modelId, type })}
     <Box alignItems={"center"}>
       <Text textAlign="center" ff="Inter|SemiBold" color="palette.text.shade100" fontSize={5}>
-        <Trans i18nKey="DeviceAction.sell.confirm" />
+        <Trans i18nKey={`DeviceAction.${exchangeType}.confirm`} />
       </Text>
     </Box>
   </>

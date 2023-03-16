@@ -27,14 +27,17 @@ const FirmwareUpdateBanner = ({ old, right }: { old?: boolean, right?: any }) =>
     });
     const search = urlParams.toString();
     history.push({
-      pathname: "manager",
+      pathname: "/manager",
       search: `?${search}`,
     });
   };
 
   const inManager = location.pathname === "/manager";
 
-  return !visibleFirmwareVersion ? null : right || !inManager ? (
+  if (!visibleFirmwareVersion || (!right && inManager)) return null;
+  // prevents the standard banner in Default.js from being displayed in the manager
+
+  return (
     <TopBanner
       id={"fw-update-banner"}
       content={{
@@ -55,7 +58,7 @@ const FirmwareUpdateBanner = ({ old, right }: { old?: boolean, right?: any }) =>
       }}
       status={"warning"}
     />
-  ) : null;
+  );
 };
 
 const FirmwareUpdateBannerEntry = ({ old, right }: { old?: boolean, right?: any }) => {

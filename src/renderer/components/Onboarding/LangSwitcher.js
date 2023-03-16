@@ -5,19 +5,17 @@ import { useTranslation } from "react-i18next";
 import { setLanguage } from "~/renderer/actions/settings";
 import useTheme from "~/renderer/hooks/useTheme";
 import { rgba } from "~/renderer/styles/helpers";
-import { langAndRegionSelector } from "~/renderer/reducers/settings";
+import { languageSelector } from "~/renderer/reducers/settings";
 import { useDispatch, useSelector } from "react-redux";
 import { languageLabels } from "~/renderer/screens/settings/sections/General/LanguageSelect";
 
-import moment from "moment";
+import { prodStableLanguages } from "~/config/languages";
 
-const options = [
-  { value: "en", support: "full", label: languageLabels.en },
-  { value: "fr", support: "full", label: languageLabels.fr },
-  { value: "ru", support: "partial", label: languageLabels.ru },
-  { value: "zh", support: "partial", label: languageLabels.zh },
-  { value: "es", support: "partial", label: languageLabels.es },
-];
+const options = prodStableLanguages.map(value => ({
+  value,
+  support: ["en", "fr"].includes(value) ? "full" : "partial",
+  label: languageLabels[value],
+}));
 
 const styleFn = theme => ({
   container: (provided, state) => ({
@@ -106,12 +104,11 @@ const styleFn = theme => ({
 const LangSwitcher = () => {
   const theme = useTheme();
   const styles = useMemo(() => styleFn(theme), [theme]);
-  const { language } = useSelector(langAndRegionSelector);
+  const language = useSelector(languageSelector);
   const dispatch = useDispatch();
   const { i18n } = useTranslation();
 
   useEffect(() => {
-    moment.locale(language);
     i18n.changeLanguage(language);
   }, [i18n, language]);
 

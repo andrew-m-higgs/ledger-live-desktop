@@ -25,6 +25,7 @@ export const saveSettings: SaveSettings = payload => ({
 export const setCountervalueFirst = (countervalueFirst: boolean) =>
   saveSettings({ countervalueFirst });
 export const setAccountsViewMode = (accountsViewMode: *) => saveSettings({ accountsViewMode });
+export const setNftsViewMode = (nftsViewMode: *) => saveSettings({ nftsViewMode });
 export const setSelectedTimeRange = (selectedTimeRange: PortfolioRange) =>
   saveSettings({ selectedTimeRange });
 export const setDeveloperMode = (developerMode: boolean) => saveSettings({ developerMode });
@@ -47,6 +48,9 @@ export const setEnablePlatformDevTools = (enablePlatformDevTools: boolean) =>
   saveSettings({ enablePlatformDevTools });
 export const setCatalogProvider = (catalogProvider: string) => saveSettings({ catalogProvider });
 
+export const setEnableLearnPageStagingUrl = (enableLearnPageStagingUrl: boolean) =>
+  saveSettings({ enableLearnPageStagingUrl });
+
 export const setCounterValue = (counterValue: string) =>
   saveSettings({
     counterValue,
@@ -54,7 +58,9 @@ export const setCounterValue = (counterValue: string) =>
   });
 export const setLanguage = (language: ?string) => saveSettings({ language });
 export const setTheme = (theme: ?string) => saveSettings({ theme });
-export const setRegion = (region: ?string) => saveSettings({ region });
+export const setLocale = (locale: string) => saveSettings({ locale });
+export const setUSBTroubleshootingIndex = (USBTroubleshootingIndex?: number) =>
+  saveSettings({ USBTroubleshootingIndex });
 
 export function useHideEmptyTokenAccounts() {
   const dispatch = useDispatch();
@@ -109,6 +115,11 @@ export const blacklistToken = (tokenId: string) => ({
   payload: tokenId,
 });
 
+export const hideNftCollection = (collectionId: string) => ({
+  type: "HIDE_NFT_COLLECTION",
+  payload: collectionId,
+});
+
 export const swapAcceptProvider = (providerId: string) => ({
   type: "ACCEPT_SWAP_PROVIDER",
   payload: providerId,
@@ -117,6 +128,11 @@ export const swapAcceptProvider = (providerId: string) => ({
 export const showToken = (tokenId: string) => ({
   type: "SHOW_TOKEN",
   payload: tokenId,
+});
+
+export const unhideNftCollection = (collectionId: string) => ({
+  type: "UNHIDE_NFT_COLLECTION",
+  payload: collectionId,
 });
 
 type FetchSettings = (*) => (Dispatch<*>) => void;
@@ -180,5 +196,20 @@ export const setSwapHasAcceptedIPSharing = (hasAcceptedIPSharing: boolean) => ({
 
 export const setSwapKYCStatus = (payload: { provider: string, id?: string, status?: string }) => ({
   type: "SET_SWAP_KYC",
+  payload,
+});
+
+export const addStarredMarketCoins = (payload: string) => ({
+  type: "ADD_STARRED_MARKET_COINS",
+  payload,
+});
+
+export const removeStarredMarketCoins = (payload: string) => ({
+  type: "REMOVE_STARRED_MARKET_COINS",
+  payload,
+});
+
+export const toggleStarredMarketCoins = (payload: string) => ({
+  type: "TOGGLE_STARRED_MARKET_COINS",
   payload,
 });

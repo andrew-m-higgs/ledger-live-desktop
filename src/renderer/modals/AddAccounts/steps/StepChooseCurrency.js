@@ -2,7 +2,11 @@
 
 import React, { useMemo, useCallback } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { listSupportedCurrencies, listTokens } from "@ledgerhq/live-common/lib/currencies";
+import {
+  listSupportedCurrencies,
+  listTokens,
+  isCurrencySupported,
+} from "@ledgerhq/live-common/lib/currencies";
 import { findTokenAccountByCurrency } from "@ledgerhq/live-common/lib/account";
 import { supportLinkByTokenType } from "~/config/urls";
 import TrackPage from "~/renderer/analytics/TrackPage";
@@ -20,8 +24,10 @@ import useSatStackStatus from "~/renderer/hooks/useSatStackStatus";
 import useEnv from "~/renderer/hooks/useEnv";
 import type { SatStackStatus } from "@ledgerhq/live-common/lib/families/bitcoin/satstack";
 
+const listSupportedTokens = () => listTokens().filter(t => isCurrencySupported(t.parentCurrency));
+
 const StepChooseCurrency = ({ currency, setCurrency }: StepProps) => {
-  const currencies = useMemo(() => listSupportedCurrencies().concat(listTokens()), []);
+  const currencies = useMemo(() => listSupportedCurrencies().concat(listSupportedTokens()), []);
 
   const url =
     currency && currency.type === "TokenCurrency"
@@ -124,7 +130,7 @@ export const StepChooseCurrencyFooter = ({
       {isToken ? (
         <Box horizontal>
           {parentCurrency ? (
-            <Button ml={2} primary onClick={onTokenCta} id="modal-token-continue-button">
+            <Button ml={2} primary onClick={onTokenCta} data-test-id="modal-continue-button">
               {parentTokenAccount
                 ? t("addAccounts.cta.receive")
                 : t("addAccounts.cta.addAccountName", {
@@ -138,7 +144,7 @@ export const StepChooseCurrencyFooter = ({
           primary
           disabled={!currency || fullNodeNotReady}
           onClick={() => transitionTo("connectDevice")}
-          id="modal-continue-button"
+          data-test-id="modal-continue-button"
         >
           {t("common.continue")}
         </Button>
